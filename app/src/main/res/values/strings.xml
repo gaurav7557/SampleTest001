@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">TestApplication002</string>
+    <string name="tab_text_1">Search</string>
+    <string name="tab_text_2">Favourites</string>
+</resources>
