@@ -1,10 +1,6 @@
 package com.example.testapplication002.ui.main.viewModels
 
-import android.arch.lifecycle.LiveData
-import android.arch.lifecycle.Transformations
 import android.arch.lifecycle.ViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import java.util.Calendar
 
 class ResultsPageViewModel() : ViewModel() {

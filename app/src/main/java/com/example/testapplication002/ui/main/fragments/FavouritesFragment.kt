@@ -60,6 +60,7 @@ class FavouritesFragment : Fragment() {
         })
     }
 
+    // Processes entry (add or remove) to the cache
     private fun processEntryToFavourites(it: String) {
         val data = it.split(" ")
         if (data[1] == "add" && !favList.contains(data[0]))
@@ -70,6 +71,7 @@ class FavouritesFragment : Fragment() {
         updatePrefsForData()
     }
 
+    // Favourites array is taken from the shared preferences, so we need to update it after each operation
     private fun updatePrefsForData() {
         val prefs = activity?.getPreferences(MODE_PRIVATE)
         val prefsEditor: SharedPreferences.Editor = (prefs?.edit() ?: null) as SharedPreferences.Editor
@@ -79,6 +81,7 @@ class FavouritesFragment : Fragment() {
         prefsEditor.commit()
     }
 
+    // callback to move the results fragment on the top
     private fun resultsRedirectCallback(input: String) {
         val parentActivity = this.activity as MainActivity
         val data = input.split("-")

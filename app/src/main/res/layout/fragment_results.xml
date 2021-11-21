@@ -2,7 +2,8 @@
 <ScrollView
     android:layout_height="wrap_content"
     android:layout_width="match_parent"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:background="@color/backgroundColor">
 
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
@@ -18,7 +19,8 @@
             android:layout_marginHorizontal="@dimen/activity_horizontal_margin"
             android:layout_marginVertical="@dimen/activity_vertical_margin"
             android:layout_weight="1"
-            android:text="Loading Data..."/>
+            android:text="Loading Data..."
+            android:textColor="@color/textColor"/>
 
         <LinearLayout
             android:id="@+id/options_layout"
@@ -34,7 +36,8 @@
                 android:layout_marginHorizontal="@dimen/activity_horizontal_margin"
                 android:layout_marginVertical="@dimen/activity_vertical_margin"
                 android:layout_weight="1"
-                android:layout_gravity="left"/>
+                android:layout_gravity="left"
+                android:textColor="@color/textColor"/>
 
             <CheckBox
                 android:id="@+id/favourites_toggle"
@@ -42,7 +45,8 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="right"
                 android:text="Favourites"
-                android:paddingEnd="10dp"/>
+                android:paddingEnd="10dp"
+                android:textColor="@color/textColor"/>
 
         </LinearLayout>
 
@@ -61,7 +65,8 @@
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="@dimen/activity_horizontal_margin"
             android:layout_marginVertical="@dimen/activity_vertical_margin"
-            android:layout_weight="1"/>
+            android:layout_weight="1"
+            android:textColor="@color/textColor"/>
 
 
     </LinearLayout>

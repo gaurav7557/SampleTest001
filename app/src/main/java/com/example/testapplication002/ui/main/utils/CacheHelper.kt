@@ -3,6 +3,9 @@ package com.example.testapplication002.ui.main.utils
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.io.*
 import java.net.URLEncoder
 import java.util.*
@@ -97,5 +100,20 @@ object CacheHelper {
             e.printStackTrace()
         }
         return null
+    }
+
+    fun cacheApiResults(context: Context?, responseString: String, date: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            context?.let {
+                CacheHelper.saveData(it,
+                    date,
+                    responseString)
+            }
+            context?.let {
+                CacheHelper.saveData(it,
+                    "lastDate",
+                    date)
+            }
+        }
     }
 }

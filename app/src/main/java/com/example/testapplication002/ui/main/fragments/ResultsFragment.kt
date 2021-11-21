@@ -13,6 +13,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import com.example.testapplication002.R
+import com.example.testapplication002.ui.main.utils.ApiConstants
 import com.example.testapplication002.ui.main.utils.CacheHelper
 import com.example.testapplication002.ui.main.utils.NetworkHelperUtils
 import com.example.testapplication002.ui.main.viewModels.ResultsPageViewModel
@@ -28,16 +29,6 @@ import java.io.IOException
 import java.lang.reflect.Type
 import java.util.*
 import kotlin.collections.ArrayList
-
-
-object constants {
-    public val URL_SCHEME = "https"
-    public val URL_AUTHORITY ="api.nasa.gov"
-    public val PATH_PLANETARY = "planetary"
-    public val PATH_APOD = "apod"
-    public val API_KEY_KEY = "api_key"
-    public val DATE_KEY = "date"
-}
 
 class ResultsFragment : Fragment() {
 
@@ -91,6 +82,7 @@ class ResultsFragment : Fragment() {
         }
     }
 
+    // In case of any issues revert to the last displayed value
     private fun replaceWithLastData() {
         var responseString = CacheHelper.retrieveData(context!!, "lastDate")
         if (responseString.isNullOrEmpty()) {
@@ -111,12 +103,14 @@ class ResultsFragment : Fragment() {
         }
     }
 
+    // Update the view Model for displaying new search results
     fun updateViewModel(year: Int, month: Int, day: Int) {
         pageViewModel.setDateComponents(year, month, day)
         clearUIForDataUpdate()
         checkCacheAndcallApiForResponse()
     }
 
+    // Check if the data is present in cache else make a network call
     private fun checkCacheAndcallApiForResponse() {
         val responseString = CacheHelper.retrieveData(context!!, pageViewModel.getDateFromComponents())
         if (responseString.isNullOrEmpty()) {
@@ -133,37 +127,21 @@ class ResultsFragment : Fragment() {
         }
     }
 
+    // Call okhttp network call for the api
     private fun callApiForResponse() {
         if(NetworkHelperUtils.isOnline(context!!)) {
-            val builder = Uri.Builder()
-            builder.scheme(constants.URL_SCHEME)
-                .authority(constants.URL_AUTHORITY)
-                .appendPath(constants.PATH_PLANETARY)
-                .appendPath(constants.PATH_APOD)
-                .appendQueryParameter(constants.API_KEY_KEY,
-                    context!!.getString(R.string.nasa_api_key))
-                .appendQueryParameter(constants.DATE_KEY, pageViewModel.getDateFromComponents())
-
             CoroutineScope(Dispatchers.IO).launch {
                 val request = Request.Builder()
-                    .url(builder.build().toString())
+                    .url(NetworkHelperUtils.buildURL(context!!, pageViewModel.getDateFromComponents()))
                     .build()
 
                 val response = client.newCall(request).execute()
                 val responseString = response.body()?.string()
                 if (response.isSuccessful) {
                     val result = JSONObject(responseString)
-                    CoroutineScope(Dispatchers.IO).launch {
-                        context?.let {
-                            CacheHelper.saveData(it,
-                                result.getString("date"),
-                                responseString)
-                        }
-                        context?.let {
-                            CacheHelper.saveData(it,
-                                "lastDate",
-                                result.getString("date"))
-                        }
+                    responseString?.let {
+                        CacheHelper.cacheApiResults(context,
+                            it, result.getString("date"))
                     }
                     updateUi(result.getString("title"),
                         result.getString("date"),
@@ -180,6 +158,7 @@ class ResultsFragment : Fragment() {
         }
     }
 
+    //update UI after the data is received
     private fun updateUi(title: String, date: String, bitmap: Bitmap?, explanation: String) {
         CoroutineScope(Dispatchers.Main).launch {
             optionsLayout.visibility = View.VISIBLE
@@ -191,6 +170,7 @@ class ResultsFragment : Fragment() {
         }
     }
 
+    // Flush the UI for getting new Data
     private fun clearUIForDataUpdate() {
         headerTextView.text = "Loading..."
         imageView.setImageResource(R.drawable.ic_launcher_background)
@@ -200,6 +180,7 @@ class ResultsFragment : Fragment() {
         optionsLayout.visibility = View.GONE
     }
 
+    // Update the Favourites part
     private fun updateFavouritesState() {
         val prefs = activity?.getPreferences(Context.MODE_PRIVATE)
         val gson = Gson()
