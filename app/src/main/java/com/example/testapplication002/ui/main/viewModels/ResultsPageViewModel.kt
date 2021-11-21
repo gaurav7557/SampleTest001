@@ -3,11 +3,11 @@ package com.example.testapplication002.ui.main.viewModels
 import android.arch.lifecycle.LiveData
 import android.arch.lifecycle.Transformations
 import android.arch.lifecycle.ViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import java.util.Calendar
 
 class ResultsPageViewModel() : ViewModel() {
-
-    var text = "Hello World"
 
     private var year: Int = Calendar.getInstance().get(Calendar.YEAR)
     private var month: Int = Calendar.getInstance().get(Calendar.MONTH)
@@ -17,5 +17,9 @@ class ResultsPageViewModel() : ViewModel() {
         year = yy
         month = mm
         day = dd
+    }
+
+    fun getDateFromComponents() : String {
+        return "$year-$month-$day"
     }
 }

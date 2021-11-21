@@ -1,6 +1,7 @@
 package com.example.testapplication002.ui.main.fragments
 
 import android.arch.lifecycle.ViewModelProviders
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
@@ -16,9 +17,9 @@ import com.example.testapplication002.ui.main.viewModels.ResultsPageViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import okhttp3.OkHttpClient
-import okhttp3.Request
+import okhttp3.*
 import org.json.JSONObject
+import java.io.File
 import java.io.IOException
 import java.util.Calendar
 
@@ -36,11 +37,16 @@ object constants {
 class ResultsFragment : Fragment() {
 
     private lateinit var pageViewModel: ResultsPageViewModel
-    val client = OkHttpClient()
+    private val client = OkHttpClient()
+    private lateinit var cache : Cache
+
     private lateinit var headerTextView: TextView
     private lateinit var dateTextView: TextView
     private lateinit var imageView: ImageView
     private lateinit var explanationView: TextView
+
+    private val cacheSize = 10 * 1024 * 1024 // 10 MB
+    private val httpCacheDirectory = File(context?.getCacheDir(), "api-cache")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,7 +55,7 @@ class ResultsFragment : Fragment() {
             setDateComponents(
                 arguments?.getInt(ARG_YEAR) ?: currentCalenderInstance.get(Calendar.YEAR),
                 arguments?.getInt(ARG_MONTH) ?: currentCalenderInstance.get(Calendar.MONTH),
-                arguments?.getInt(ARG_MONTH) ?: currentCalenderInstance.get(Calendar.DAY_OF_MONTH)
+                arguments?.getInt(ARG_DAY) ?: currentCalenderInstance.get(Calendar.DAY_OF_MONTH)
             )
         }
         callApiForResponse()
@@ -67,32 +73,52 @@ class ResultsFragment : Fragment() {
         return root
     }
 
-    fun callApiForResponse() {
+    fun updateViewModel(year: Int, month: Int, day: Int) {
+        pageViewModel.setDateComponents(year, month, day)
+        clearUIForDataUpdate()
+        callApiForResponse()
+    }
+
+    private fun callApiForResponse() {
         val builder = Uri.Builder()
         builder.scheme(constants.URL_SCHEME)
             .authority(constants.URL_AUTHORITY)
             .appendPath(constants.PATH_PLANETARY)
             .appendPath(constants.PATH_APOD)
             .appendQueryParameter(constants.API_KEY_KEY, constants.API_KEY_VALUE)
-            .appendQueryParameter(constants.DATE_KEY, "2018-11-19")
+            .appendQueryParameter(constants.DATE_KEY, pageViewModel.getDateFromComponents())
 
         CoroutineScope(Dispatchers.IO).launch{
             val request = Request.Builder()
                 .url(builder.build().toString())
-                .method("GET", null)
                 .build()
+
             val response = client.newCall(request).execute()
             val responseString = response.body()?.string()
             if(response.isSuccessful) {
-                CoroutineScope(Dispatchers.Main).launch {
-                    val result = JSONObject(responseString)
-                    headerTextView.text = result.getString("title")
-                    dateTextView.text = result.getString("date")
-                    updateBitmapFromURL(result.getString("url"), imageView);
-                    explanationView.text = result.getString("explanation")
-                }
+                val result = JSONObject(responseString)
+                updateUi(result.getString("title"),
+                    result.getString("date"),
+                    extractBitmapFromURL(result.getString("url")),
+                    result.getString("explanation"))
             }
         }
+    }
+
+    private fun updateUi(title: String, date: String, bitmap: Bitmap?, explanation: String) {
+        CoroutineScope(Dispatchers.Main).launch {
+            headerTextView.text = title
+            dateTextView.text = date
+            explanationView.text = explanation
+            imageView.setImageBitmap(bitmap)
+        }
+    }
+
+    private fun clearUIForDataUpdate() {
+        headerTextView.text = "Loading..."
+        imageView.setImageResource(R.drawable.ic_launcher_background)
+        dateTextView.text = ""
+        explanationView.text = ""
     }
 
     companion object {
@@ -120,18 +146,15 @@ class ResultsFragment : Fragment() {
         }
 
         @JvmStatic
-        fun updateBitmapFromURL(src: String, imageView: ImageView) {
-            CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    val input = java.net.URL(src).openStream()
-                    val image = BitmapFactory.decodeStream(input)
-                    CoroutineScope(Dispatchers.Main).launch {
-                        imageView.setImageBitmap(image)
-                    }
-                } catch (e: IOException) {
-                    e.printStackTrace()
-                    Log.e("Exception", e.message.toString())
-                }
+        fun extractBitmapFromURL(src: String): Bitmap? {
+            return try {
+                val input = java.net.URL(src).openStream()
+                val image = BitmapFactory.decodeStream(input)
+                image
+            } catch (e: IOException) {
+                e.printStackTrace()
+                Log.e("Exception", e.message.toString())
+                null
             }
         }
     }

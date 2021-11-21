@@ -21,17 +21,16 @@ private val TAB_TITLES = arrayOf(
 class SectionsPagerAdapter(private val context: Context, fm: FragmentManager)
     : FragmentPagerAdapter(fm) {
 
-    private var currentSetYear: Int = Calendar.getInstance().get(Calendar.YEAR)
-    private var currentSetMonth: Int = Calendar.getInstance().get(Calendar.MONTH)
-    private var currentSetDay: Int = Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
-
     override fun getItem(position: Int): Fragment {
         // getItem is called to instantiate the fragment for the given page.
         // Return a PlaceholderFragment (defined as a static inner class below).
+
         if (position == 1)
             return FavouritesFragment.newInstance(position + 1)
         else
-            return ResultsFragment.newInstance(currentSetYear, currentSetMonth, currentSetDay)
+            return ResultsFragment.newInstance(Calendar.getInstance().get(Calendar.YEAR),
+                Calendar.getInstance().get(Calendar.MONTH),
+                Calendar.getInstance().get(Calendar.DAY_OF_MONTH))
     }
 
     override fun getPageTitle(position: Int): CharSequence? {
