@@ -19,12 +19,30 @@
             android:layout_weight="1"
             android:text="Loading Data..."/>
 
-        <TextView
-            android:id="@+id/date_label"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:id="@+id/options_layout"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="@dimen/activity_horizontal_margin"
-            android:layout_weight="1"/>
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/date_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="@dimen/activity_horizontal_margin"
+                android:layout_weight="1"
+                android:layout_gravity="left"/>
+
+            <CheckBox
+                android:id="@+id/favourites_toggle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="right"
+                android:text="Favourites"
+                android:paddingEnd="10dp"/>
+
+        </LinearLayout>
 
         <ImageView
             android:id="@+id/image_view"

@@ -46,7 +46,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateResultsFragment(year: Int, month: Int, day: Int) {
+    fun updateResultsFragment(year: Int, month: Int, day: Int) {
         val resultsFragment = supportFragmentManager.findFragmentByTag("android:switcher:" + viewPager.id + ":" + RESULTS_FRAGMENT_ID) as ResultsFragment
         resultsFragment.updateViewModel(year, month, day)
         viewPager.currentItem = RESULTS_FRAGMENT_ID
