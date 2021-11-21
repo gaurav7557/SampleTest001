@@ -21,9 +21,7 @@ import com.example.testapplication002.ui.main.viewModels.ResultsPageViewModel
 import com.example.testapplication002.ui.main.viewModels.SharedViewModel
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import okhttp3.Cache
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -40,7 +38,6 @@ object constants {
     public val PATH_PLANETARY = "planetary"
     public val PATH_APOD = "apod"
     public val API_KEY_KEY = "api_key"
-    public val API_KEY_VALUE = "zyfcpeL8hF4k7PdZSkssdi7usDuBjEIjkKhAbMaY"
     public val DATE_KEY = "date"
 }
 
@@ -49,7 +46,6 @@ class ResultsFragment : Fragment() {
     private lateinit var pageViewModel: ResultsPageViewModel
     private lateinit var sharedViewModel: SharedViewModel
     private val client = OkHttpClient()
-    private lateinit var cache : Cache
 
     private lateinit var headerTextView: TextView
     private lateinit var dateTextView: TextView
@@ -69,7 +65,23 @@ class ResultsFragment : Fragment() {
             )
         }
         sharedViewModel = ViewModelProviders.of(activity!!).get(SharedViewModel::class.java)
-        checkCacheAndcallApiForResponse()
+        var responseString = CacheHelper.retrieveData(context!!, "lastDate")
+        if (responseString.isNullOrEmpty()) {
+            callApiForResponse()
+        } else {
+            responseString = CacheHelper.retrieveData(context!!, responseString)
+            if(responseString.isNullOrEmpty()) {
+                callApiForResponse()
+            } else {
+                val result = JSONObject(responseString)
+                CoroutineScope(Dispatchers.IO).launch {
+                    updateUi(result.getString("title"),
+                        result.getString("date"),
+                        extractBitmapFromURL(result.getString("url"), context!!),
+                        result.getString("explanation"))
+                }
+            }
+        }
     }
 
     override fun onCreateView(
@@ -125,7 +137,7 @@ class ResultsFragment : Fragment() {
             .authority(constants.URL_AUTHORITY)
             .appendPath(constants.PATH_PLANETARY)
             .appendPath(constants.PATH_APOD)
-            .appendQueryParameter(constants.API_KEY_KEY, constants.API_KEY_VALUE)
+            .appendQueryParameter(constants.API_KEY_KEY, context!!.getString(R.string.nasa_api_key))
             .appendQueryParameter(constants.DATE_KEY, pageViewModel.getDateFromComponents())
 
         CoroutineScope(Dispatchers.IO).launch{
@@ -137,8 +149,14 @@ class ResultsFragment : Fragment() {
             val responseString = response.body()?.string()
             if(response.isSuccessful) {
                 val result = JSONObject(responseString)
-                context?.let { CacheHelper.saveData(it, result.getString("date"), responseString) }
-                context?.let { CacheHelper.saveData(it, "lastDate", result.getString("date")) }
+                CoroutineScope(Dispatchers.IO).launch {
+                    context?.let {
+                        CacheHelper.saveData(it,
+                            result.getString("date"),
+                            responseString)
+                    }
+                    context?.let { CacheHelper.saveData(it, "lastDate", result.getString("date")) }
+                }
                 updateUi(result.getString("title"),
                     result.getString("date"),
                     extractBitmapFromURL(result.getString("url"), context!!),
@@ -205,12 +223,14 @@ class ResultsFragment : Fragment() {
         }
 
         @JvmStatic
-        fun extractBitmapFromURL(src: String, context: Context): Bitmap? {
+        suspend fun extractBitmapFromURL(src: String, context: Context): Bitmap? {
             return CacheHelper.retrieveImage(context, src)
                 ?: try {
                     val input = java.net.URL(src).openStream()
                     val image = BitmapFactory.decodeStream(input)
-                    CacheHelper.saveImage(context, src, image)
+                    withContext(Dispatchers.IO) {
+                        CacheHelper.saveImage(context, src, image)
+                    }
                     image
                 } catch (e: IOException) {
                     e.printStackTrace()
