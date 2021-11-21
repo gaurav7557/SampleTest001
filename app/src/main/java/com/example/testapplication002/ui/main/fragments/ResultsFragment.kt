@@ -11,12 +11,10 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.CheckBox
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
+import android.widget.*
 import com.example.testapplication002.R
 import com.example.testapplication002.ui.main.utils.CacheHelper
+import com.example.testapplication002.ui.main.utils.NetworkHelperUtils
 import com.example.testapplication002.ui.main.viewModels.ResultsPageViewModel
 import com.example.testapplication002.ui.main.viewModels.SharedViewModel
 import com.google.gson.Gson
@@ -65,23 +63,7 @@ class ResultsFragment : Fragment() {
             )
         }
         sharedViewModel = ViewModelProviders.of(activity!!).get(SharedViewModel::class.java)
-        var responseString = CacheHelper.retrieveData(context!!, "lastDate")
-        if (responseString.isNullOrEmpty()) {
-            callApiForResponse()
-        } else {
-            responseString = CacheHelper.retrieveData(context!!, responseString)
-            if(responseString.isNullOrEmpty()) {
-                callApiForResponse()
-            } else {
-                val result = JSONObject(responseString)
-                CoroutineScope(Dispatchers.IO).launch {
-                    updateUi(result.getString("title"),
-                        result.getString("date"),
-                        extractBitmapFromURL(result.getString("url"), context!!),
-                        result.getString("explanation"))
-                }
-            }
-        }
+        replaceWithLastData()
     }
 
     override fun onCreateView(
@@ -109,6 +91,26 @@ class ResultsFragment : Fragment() {
         }
     }
 
+    private fun replaceWithLastData() {
+        var responseString = CacheHelper.retrieveData(context!!, "lastDate")
+        if (responseString.isNullOrEmpty()) {
+            callApiForResponse()
+        } else {
+            responseString = CacheHelper.retrieveData(context!!, responseString)
+            if(responseString.isNullOrEmpty()) {
+                callApiForResponse()
+            } else {
+                val result = JSONObject(responseString)
+                CoroutineScope(Dispatchers.IO).launch {
+                    updateUi(result.getString("title"),
+                        result.getString("date"),
+                        extractBitmapFromURL(result.getString("url"), context!!),
+                        result.getString("explanation"))
+                }
+            }
+        }
+    }
+
     fun updateViewModel(year: Int, month: Int, day: Int) {
         pageViewModel.setDateComponents(year, month, day)
         clearUIForDataUpdate()
@@ -132,36 +134,49 @@ class ResultsFragment : Fragment() {
     }
 
     private fun callApiForResponse() {
-        val builder = Uri.Builder()
-        builder.scheme(constants.URL_SCHEME)
-            .authority(constants.URL_AUTHORITY)
-            .appendPath(constants.PATH_PLANETARY)
-            .appendPath(constants.PATH_APOD)
-            .appendQueryParameter(constants.API_KEY_KEY, context!!.getString(R.string.nasa_api_key))
-            .appendQueryParameter(constants.DATE_KEY, pageViewModel.getDateFromComponents())
+        if(NetworkHelperUtils.isOnline(context!!)) {
+            val builder = Uri.Builder()
+            builder.scheme(constants.URL_SCHEME)
+                .authority(constants.URL_AUTHORITY)
+                .appendPath(constants.PATH_PLANETARY)
+                .appendPath(constants.PATH_APOD)
+                .appendQueryParameter(constants.API_KEY_KEY,
+                    context!!.getString(R.string.nasa_api_key))
+                .appendQueryParameter(constants.DATE_KEY, pageViewModel.getDateFromComponents())
 
-        CoroutineScope(Dispatchers.IO).launch{
-            val request = Request.Builder()
-                .url(builder.build().toString())
-                .build()
+            CoroutineScope(Dispatchers.IO).launch {
+                val request = Request.Builder()
+                    .url(builder.build().toString())
+                    .build()
 
-            val response = client.newCall(request).execute()
-            val responseString = response.body()?.string()
-            if(response.isSuccessful) {
-                val result = JSONObject(responseString)
-                CoroutineScope(Dispatchers.IO).launch {
-                    context?.let {
-                        CacheHelper.saveData(it,
-                            result.getString("date"),
-                            responseString)
+                val response = client.newCall(request).execute()
+                val responseString = response.body()?.string()
+                if (response.isSuccessful) {
+                    val result = JSONObject(responseString)
+                    CoroutineScope(Dispatchers.IO).launch {
+                        context?.let {
+                            CacheHelper.saveData(it,
+                                result.getString("date"),
+                                responseString)
+                        }
+                        context?.let {
+                            CacheHelper.saveData(it,
+                                "lastDate",
+                                result.getString("date"))
+                        }
                     }
-                    context?.let { CacheHelper.saveData(it, "lastDate", result.getString("date")) }
+                    updateUi(result.getString("title"),
+                        result.getString("date"),
+                        extractBitmapFromURL(result.getString("url"), context!!),
+                        result.getString("explanation"))
+                } else {
+                    Toast.makeText(context, "API Download Failed", Toast.LENGTH_LONG).show()
+                    replaceWithLastData()
                 }
-                updateUi(result.getString("title"),
-                    result.getString("date"),
-                    extractBitmapFromURL(result.getString("url"), context!!),
-                    result.getString("explanation"))
             }
+        } else {
+            Toast.makeText(context, "Network Connection Issue", Toast.LENGTH_LONG).show()
+            replaceWithLastData()
         }
     }
 
