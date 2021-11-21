@@ -170,11 +170,13 @@ class ResultsFragment : Fragment() {
     private fun updateFavouritesState() {
         val prefs = activity?.getPreferences(Context.MODE_PRIVATE)
         val gson = Gson()
-        val json: String = prefs?.getString("Favourites", "")!!
-        if (json.isNotEmpty()) {
-            val type: Type = object : TypeToken<List<String?>?>() {}.getType()
-            val favList : ArrayList<String> = gson.fromJson(json, type)
-            favourites_toggle.isChecked = favList.contains(dateTextView.text)
+        if(prefs?.contains("Favourites") == true) {
+            val json: String = prefs?.getString("Favourites", "")!!
+            if (json.isNotEmpty()) {
+                val type: Type = object : TypeToken<List<String?>?>() {}.getType()
+                val favList: ArrayList<String> = gson.fromJson(json, type)
+                favourites_toggle.isChecked = favList.contains(dateTextView.text)
+            }
         }
     }
 
